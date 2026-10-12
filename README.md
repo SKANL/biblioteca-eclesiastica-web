@@ -142,3 +142,11 @@ an isolated build copy. Moving input fixtures does not require DB/media regenera
 
 - Search: `Enter` submits the focused field.
 - Reader: `←` / `→` go to the previous / next page.
+
+### Login de desarrollo (solo local)
+
+Para probar el área de editor sin un cliente OAuth de Google: `AUTH_DEV_LOGIN=true` y
+`AUTH_DEV_EMAILS=tu@email` (lista separada por comas), además de `AUTH_SECRET` y
+`API_AUTH_SECRET`. El email también debe ser editor en la API (`ADMIN_EMAILS`).
+Nunca se activa en Vercel (se ignora si existe la variable `VERCEL`); si hay credenciales
+de Google, Google sigue siendo el método principal.
