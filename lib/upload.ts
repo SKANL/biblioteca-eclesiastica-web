@@ -123,3 +123,73 @@ export function apiErrorMessage(
       return `El servidor respondió con un error (${status}).`;
   }
 }
+
+export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
+
+/**
+ * Pairs each presigned target with its file by name (the API echoes `nombre`);
+ * duplicate names (e.g. camera photos) pair in the order sent, never by array index.
+ */
+export function pairUploads<T extends { nombre: string }, F>(
+  targets: readonly T[],
+  files: readonly F[],
+  nameOf: (file: F) => string,
+): [T, F][] {
+  const free = [...files];
+  return targets.map((target) => {
+    const i = free.findIndex((f) => nameOf(f) === target.nombre);
+    if (i < 0) throw new Error(`El servidor devolvió un archivo desconocido: ${target.nombre}.`);
+    return [target, free.splice(i, 1)[0]];
+  });
+}
+
+/**
+ * Polls a job with backoff (1 s → 10 s). One chain only: `wake` is ignored
+ * while a request is in flight or a retry is scheduled. A rejected poll counts
+ * as a network error and is retried; terminal states and 401/403/404 stop it.
+ * While `isHidden()` it pauses until `wake()`.
+ */
+export function pollJob(
+  fetchJob: () => Promise<ActionResult<Job>>,
+  onResult: (result: ActionResult<Job>) => void,
+  isHidden: () => boolean,
+): { wake(): void; stop(): void } {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let delay: number | undefined;
+  let busy = false;
+  let done = false;
+
+  async function tick() {
+    timer = undefined;
+    if (done || busy || isHidden()) return;
+    busy = true;
+    let res: ActionResult<Job>;
+    try {
+      res = await fetchJob();
+    } catch {
+      res = { ok: false, status: 0, error: apiErrorMessage(0) };
+    }
+    busy = false;
+    if (done) return;
+    onResult(res);
+    if (res.ok ? isTerminal(res.data.estado) : [401, 403, 404].includes(res.status)) {
+      done = true;
+      return;
+    }
+    delay = nextPollDelay(delay);
+    timer = setTimeout(tick, delay);
+  }
+  tick();
+  return {
+    wake() {
+      if (timer === undefined && !busy && !done) {
+        delay = undefined; // fresh data right away when the editor comes back
+        tick();
+      }
+    },
+    stop() {
+      done = true;
+      clearTimeout(timer);
+    },
+  };
+}

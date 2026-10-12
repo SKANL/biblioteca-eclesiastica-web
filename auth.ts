@@ -1,6 +1,7 @@
 import "server-only";
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import { allowSignIn } from "@/lib/auth-policy";
 import { apiFetchAs } from "@/lib/server/api";
 
 /**
@@ -18,9 +19,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [Google],
   session: { strategy: "jwt" },
   callbacks: {
-    // The API trusts the email as identity: refuse unverified Google emails.
-    signIn: ({ account, profile }) =>
-      account?.provider !== "google" || profile?.email_verified === true,
+    signIn: allowSignIn,
   },
 });
 
@@ -32,10 +31,10 @@ export async function sessionEmail(): Promise<string | null> {
 
 /**
  * Calls the API as the signed-in user (Server Actions / Route Handlers). Only
- * requires a session: the editor role is enforced by the API (403).
+ * requires a session: the editor role is enforced by the API (403). Returns
+ * null without a session (typed, so callers never match error strings).
  */
-export async function apiFetchAsSignedIn(path: string, init?: RequestInit): Promise<Response> {
+export async function apiFetchAsSignedIn(path: string, init?: RequestInit): Promise<Response | null> {
   const email = await sessionEmail();
-  if (!email) throw new Error("Sesión requerida.");
-  return apiFetchAs(email, path, init);
+  return email ? apiFetchAs(email, path, init) : null;
 }

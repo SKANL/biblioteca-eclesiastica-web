@@ -42,7 +42,7 @@ corriendo** para que la app tenga datos.
 Login de editores (opcional): `AUTH_SECRET`, `AUTH_GOOGLE_ID`,
 `AUTH_GOOGLE_SECRET`, `API_AUTH_SECRET` (= `AUTH_SECRET` del API), `API_BASE_URL`.
 `auth.ts` (raíz) configura Auth.js v5; `lib/server/api.ts` (server-only) firma
-el token HS256 y llama al API (`apiFetchAs`, `getMe`); `apiFetchAsSignedIn` (solo exige sesión; el rol lo valida el API) en
+el token HS256 y llama al API (`apiFetchAs`, `getMe`); `apiFetchAsSignedIn` (solo exige sesión y devuelve `null` sin ella; el rol lo valida el API) en
 `auth.ts` para Server Actions. Sin env, el login se oculta. `/editor` exige rol
 `editor`/`admin`. Tests con `--conditions=react-server` (por `server-only`).
 
