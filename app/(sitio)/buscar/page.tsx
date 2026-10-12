@@ -68,6 +68,7 @@ export default async function BuscarPage(props: PageProps<"/buscar">) {
           <FilterForm
             facets={facets}
             basePath="/buscar"
+            live
             initialQuery={q}
             initialGenero={genero}
             initialAutor={autor}
