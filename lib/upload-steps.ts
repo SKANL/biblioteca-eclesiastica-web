@@ -13,6 +13,7 @@ export interface StepJob {
   progreso: { paginas_hechas: number; paginas_total: number | null } | null;
   libro_id: string | null;
   error: string | null;
+  creado_en?: string;
 }
 
 export type StepState = "done" | "current" | "pending" | "failed";
@@ -41,11 +42,11 @@ export function splitsIntoBooks(types: readonly string[]): boolean {
  * browser (`upload` = 0..1). ponytail: the API reports only `fallido`, so the
  * failed step is inferred from progress (all pages read -> search step).
  */
-export function stepsFor(job: StepJob | null, upload?: number): Step[] {
+export function stepsFor(job: StepJob | null, upload?: number, stalled = false): Step[] {
   const p = job?.progreso;
   let at: number = job ? ORDER.indexOf(job.etapa as (typeof ORDER)[number]) : 0;
-  const failed = job?.etapa === "fallido";
-  if (failed) at = p?.paginas_total && p.paginas_hechas >= p.paginas_total ? 3 : 2;
+  const failed = job?.etapa === "fallido" || stalled;
+  if (job?.etapa === "fallido") at = p?.paginas_total && p.paginas_hechas >= p.paginas_total ? 3 : 2;
   const allDone = job?.etapa === "disponible";
   return LABELS.map((label, i) => {
     const state: StepState =
@@ -69,4 +70,17 @@ export function minutesLeft(
   const ms = now.at - first.at;
   if (now.done < 3 || pages <= 0 || ms <= 0 || now.done >= now.total) return null;
   return Math.max(1, Math.ceil(((now.total - now.done) * ms) / pages / 60_000));
+}
+
+/** Minutes without the files arriving before an upload counts as interrupted. */
+export const STALLED_UPLOAD_MINUTES = 15;
+
+/**
+ * True when the browser upload never finished (tab closed, network lost): the
+ * job is still waiting for its files long after it was created.
+ */
+export function uploadStalled(job: StepJob | null, now: number): boolean {
+  if (job?.etapa !== "subiendo" || !job.creado_en) return false;
+  const created = Date.parse(job.creado_en);
+  return Number.isFinite(created) && now - created > STALLED_UPLOAD_MINUTES * 60_000;
 }

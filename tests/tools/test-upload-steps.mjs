@@ -50,3 +50,14 @@ test("minutesLeft needs >=3 pages done and an observed rate", () => {
   assert.equal(minutesLeft({ at: 0, done: 10 }, { at: 1000, done: 10, total: 82 }), null);
   assert.equal(minutesLeft(first, { at: 6_000, done: 3, total: 5 }), 1); // under a minute rounds up to 1
 });
+
+test("an upload with no progress for 15 minutes is reported as stalled", async () => {
+  const { uploadStalled, stepsFor } = await import("../../lib/upload-steps.ts");
+  const created = Date.parse("2026-10-12T07:00:00Z");
+  const job = { etapa: "subiendo", progreso: null, libro_id: null, error: null, creado_en: "2026-10-12T07:00:00Z" };
+  assert.equal(uploadStalled(job, created + 14 * 60_000), false);
+  assert.equal(uploadStalled(job, created + 16 * 60_000), true);
+  assert.equal(uploadStalled({ ...job, etapa: "en_espera" }, created + 60 * 60_000), false);
+  assert.equal(uploadStalled({ ...job, creado_en: undefined }, created + 60 * 60_000), false);
+  assert.equal(stepsFor(job, undefined, true)[0].state, "failed");
+});

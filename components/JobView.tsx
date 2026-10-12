@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { reprocesarLibro } from "@/app/(sitio)/editor/actions";
 import ActionForm from "@/components/ActionForm";
 import { btnOutline, btnPrimarySm, spinnerNeutral } from "@/lib/ui";
-import { stepsFor, type StepJob, type StepState } from "@/lib/upload-steps";
+import { stepsFor, uploadStalled, type StepJob, type StepState } from "@/lib/upload-steps";
 
 const MARK: Record<StepState, { icon: string; sr: string; cls: string }> = {
   done: { icon: "✓", sr: "hecho", cls: "text-accent" },
@@ -31,11 +32,18 @@ export default function JobView({
   eta?: number | null;
   compact?: boolean;
 }) {
-  const steps = stepsFor(job, upload);
+  // Only server-reported jobs can stall; a live browser upload reports its own %.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const stalled = upload === undefined && uploadStalled(job, now);
+  const steps = stepsFor(job, upload, stalled);
   const active = steps.find((s) => s.state === "current" || s.state === "failed");
   const failed = job?.etapa === "fallido";
   const done = job?.etapa === "disponible";
-  const now = done
+  const statusText = done
     ? "Disponible para leer"
     : active
       ? `${active.label}${active.state === "failed" ? ": falló" : ""}`
@@ -47,7 +55,7 @@ export default function JobView({
       {!compact && (
         <p role="status" aria-live="polite" className="sr-only">
           {titulo ? `${titulo}: ` : ""}
-          {now}
+          {statusText}
         </p>
       )}
       <ol className={compact ? "flex flex-wrap gap-x-4 gap-y-1 text-sm" : "space-y-2"} aria-label="Pasos">
@@ -77,6 +85,17 @@ export default function JobView({
         })}
       </ol>
       {!compact && eta ? <p className="text-sm text-ink-soft">aprox. {eta} min restantes</p> : null}
+      {stalled && (
+        <div className="space-y-2">
+          <p role="alert" className="text-sm text-red-700">
+            La subida no terminó: el archivo no llegó (quizás se cerró la página o se cortó la conexión).
+            Vuelve a subirlo; si es el mismo archivo, se retoma este libro sin duplicarlo.
+          </p>
+          <Link href="/editor/subir" className={btnPrimarySm}>
+            Volver a subir
+          </Link>
+        </div>
+      )}
       {failed && (
         <div className="space-y-2">
           <p role="alert" className="text-sm text-red-700">
