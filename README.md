@@ -45,6 +45,37 @@ The server mints a 5-minute HS256 token per API call (`lib/server/api.ts`); it
 never reaches the browser. Roles come from the API (`GET /api/v1/yo`); the
 "Editor" link and `/editor` require `editor` or `admin`.
 
+Google accounts with an unverified email are refused at sign-in.
+
+### Upload flow (`/editor/subir`)
+
+Editors scan (camera) or pick files, review/reorder pages and fill the metadata.
+The browser computes each file's sha256 (whole file in memory; `crypto.subtle`
+has no streaming digest), a Server Action asks the API for presigned PUT URLs
+(`POST /api/v1/uploads`), the browser PUTs each file **directly to the bucket**
+(XHR progress, 3 attempts with jittered backoff, cancel), then a Server Action
+calls `POST /uploads/{id}/completar` and the editor lands on
+`/editor/trabajos/{id}`, which polls the job (1 s → 10 s, paused while the tab
+is hidden). Same bytes again → "Este libro ya existe".
+
+**Bucket CORS is required**: the bucket must accept `PUT` from the PWA origin,
+otherwise the browser blocks the upload. Cloudflare R2 (bucket → Settings →
+CORS policy):
+
+```json
+[
+  {
+    "AllowedOrigins": ["http://localhost:3010", "https://<your-app>.vercel.app"],
+    "AllowedMethods": ["PUT"],
+    "AllowedHeaders": ["content-type"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Local SeaweedFS (the API's docker compose, `:9000`) already answers the
+preflight for `http://localhost:3010`; nothing to configure.
+
 ## Run
 
 Start the API (from the API repository, `C:\code\pipeline-OCR`):

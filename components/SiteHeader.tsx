@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
 import { authEnabled, sessionEmail, signIn, signOut } from "@/auth";
 import { canEdit, getMe } from "@/lib/server/api";
 
@@ -6,8 +7,18 @@ const navLink =
   "rounded-md px-3 py-2 text-sm font-semibold text-ink-soft transition-colors hover:text-accent";
 
 export default async function SiteHeader() {
-  const email = await sessionEmail();
-  const me = email ? await getMe(email) : null;
+  let email: string | null = null;
+  let me: Awaited<ReturnType<typeof getMe>> = null;
+  try {
+    email = await sessionEmail();
+    me = email ? await getMe(email) : null;
+  } catch (err) {
+    unstable_rethrow(err); // keep Next internal signals (dynamic usage, redirects)
+    // A broken session/auth config must not take the page down: show logged-out UI.
+    console.error("SiteHeader: session lookup failed:", err);
+    email = null;
+    me = null;
+  }
 
   return (
     <header className="border-b border-line bg-paper">
