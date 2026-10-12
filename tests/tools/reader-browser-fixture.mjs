@@ -11,7 +11,7 @@ const { webpack } = webpackModule;
 const output = process.argv[2];
 if (!output || !fs.statSync(output).isDirectory()) throw new Error("An existing temporary directory is required");
 const root = fileURLToPath(new URL("../../", import.meta.url));
-for (const name of ["components/ReaderToolbar.tsx", "components/ReaderImage.tsx", "lib/reader-image.ts", "lib/reader-matches.ts", "lib/ui.ts"]) {
+for (const name of ["components/ReaderToolbar.tsx", "components/ReaderImage.tsx", "lib/reader-image.ts", "lib/reader-matches.ts", "lib/ui.ts", "lib/prefs.ts", "components/usePref.ts"]) {
   const destination = path.join(output, name.replace(/\.tsx?$/, ".js"));
   fs.mkdirSync(path.dirname(destination), { recursive: true });
   fs.writeFileSync(destination, ts.transpileModule(fs.readFileSync(path.join(root, name), "utf8"), {
@@ -19,7 +19,7 @@ for (const name of ["components/ReaderToolbar.tsx", "components/ReaderImage.tsx"
   }).outputText);
 }
 fs.writeFileSync(path.join(output, "lib/api.js"), "exports.mediaUrl = value => value;");
-fs.writeFileSync(path.join(output, "lib/utils.js"), "exports.numeroFromRef = value => value ? Number(value.split('/').pop()) : null;");
+fs.writeFileSync(path.join(output, "lib/utils.js"), "exports.numeroFromRef = value => value ? Number(value.split('/').pop()) : null; exports.countLabel = (n, one, many) => n + ' ' + (n === 1 ? one : many);");
 fs.writeFileSync(path.join(output, "link.js"), "exports.default = props => require('react').createElement('a', props);");
 fs.writeFileSync(path.join(output, "navigation.js"), `
 const React = require('react');

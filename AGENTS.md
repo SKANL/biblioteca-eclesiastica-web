@@ -42,9 +42,12 @@ corriendo** para que la app tenga datos.
 Login de editores (opcional): `AUTH_SECRET`, `AUTH_GOOGLE_ID`,
 `AUTH_GOOGLE_SECRET`, `API_AUTH_SECRET` (= `AUTH_SECRET` del API), `API_BASE_URL`.
 `auth.ts` (raíz) configura Auth.js v5; `lib/server/api.ts` (server-only) firma
-el token HS256 y llama al API (`apiFetchAs`, `getMe`); `apiFetchAsSignedIn` (solo exige sesión; el rol lo valida el API) en
+el token HS256 y llama al API (`apiFetchAs`, `getMe`); `apiFetchAsSignedIn` (solo exige sesión y devuelve `null` sin ella; el rol lo valida el API) en
 `auth.ts` para Server Actions. Sin env, el login se oculta. `/editor` exige rol
 `editor`/`admin`. Tests con `--conditions=react-server` (por `server-only`).
+Gestión en `/editor/libros` (PATCH/DELETE/reprocesar vía Server Actions de
+`editor/actions.ts` + `ActionForm`; revalidan las páginas públicas) y
+`/editor/editores` (solo admin).
 
 ## Estructura
 
@@ -66,7 +69,7 @@ el token HS256 y llama al API (`apiFetchAs`, `getMe`); `apiFetchAsSignedIn` (sol
   `ReaderToolbar`, `ReaderImage`, `CitePanel`, `BookCard`, `Pagination`, `EmptyState`,
   `ErrorNotice`, `MessagePage`, `SiteHeader`, `SiteFooter`.
 - `lib/api.ts` cliente tipado · `lib/types.ts` modelos · `lib/utils.ts`
-  (`snippetToSafeHtml`, `countLabel`, …; `highlightText` y `toParagraphs` existen pero no se usan) · `lib/ui.ts` **tokens
+  (`snippetToSafeHtml`, `countLabel`, …) · `lib/ui.ts` **tokens
   de clases**.
 
 ## Convenciones (IMPORTANTE)
@@ -78,9 +81,15 @@ el token HS256 y llama al API (`apiFetchAs`, `getMe`); `apiFetchAsSignedIn` (sol
 - Los datos se piden en Server Components con `fetch(..., { cache: "no-store" })`;
   la única excepción es `CitePanel` (client), que llama a la API desde el
   navegador (requiere CORS del origen de la PWA en el API).
-- Snippets de búsqueda: `snippetToSafeHtml` (escapa todo y re-habilita **solo**
-  `<mark>`). Resaltado en el lector: `markRanges` + `literalRanges`
-  (`lib/reader-matches.ts`) desde `libro/[libroId]/pagina/[numero]/page.tsx`.
+- Snippets de búsqueda: `snippetToSafeHtml` (el API ya escapa; se conservan
+  solo `<mark>`/`</mark>` y las entidades del API, el resto se escapa). Resaltado en el lector: `markRanges` con las
+  `coincidencias` del API (`lib/reader-matches.ts`).
+- Preferencias por dispositivo (vista, tema, tamaño de texto, última página por
+  libro) en `localStorage` vía `lib/prefs.ts` + `components/usePref.ts`; siempre
+  con try/catch. La URL (`?ver=`) manda sobre la preferencia.
+- Offline: `public/sw.js` (a mano, registrado solo en producción por
+  `components/ServiceWorker.tsx`; fallback `app/offline`). Subir `VERSION` al
+  cambiar estrategias. Nunca cachea POST, `/api/*`, `/editor*` ni payloads RSC.
 - Estados de carga en `loading.tsx`; vacío/error con `EmptyState` / `ErrorNotice`.
 - **Nada de UI decorativa**: cada elemento debe tener una función real y funcionar.
 

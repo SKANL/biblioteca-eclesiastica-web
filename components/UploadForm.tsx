@@ -8,6 +8,7 @@ import { btnOutline, btnPrimary, card, inputBase, labelBase } from "@/lib/ui";
 import {
   backoffDelay,
   moveItem,
+  pairUploads,
   sha256Hex,
   shouldRetry,
   validateMetadata,
@@ -27,10 +28,11 @@ interface Item {
 class Aborted extends Error {}
 
 /** PUT with upload progress (XHR: fetch has no upload progress events). Resolves the HTTP status (0 = network). */
-function put(target: PresignedFile, file: File, onProgress: (loaded: number) => void, xhrRef: { current: XMLHttpRequest | null }) {
+function put(target: PresignedFile, file: File, onProgress: (loaded: number) => void, signal: AbortSignal) {
   return new Promise<number>((resolve, reject) => {
+    if (signal.aborted) return reject(new Aborted());
     const xhr = new XMLHttpRequest();
-    xhrRef.current = xhr;
+    signal.addEventListener("abort", () => xhr.abort(), { once: true });
     xhr.open(target.metodo, target.url);
     for (const [k, v] of Object.entries(target.encabezados)) xhr.setRequestHeader(k, v);
     xhr.upload.onprogress = (e) => onProgress(e.loaded);
@@ -38,6 +40,15 @@ function put(target: PresignedFile, file: File, onProgress: (loaded: number) => 
     xhr.onerror = () => resolve(0);
     xhr.onabort = () => reject(new Aborted());
     xhr.send(file);
+  });
+}
+
+/** Backoff wait that Cancel interrupts. */
+function sleep(ms: number, signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal.aborted) return reject(new Aborted());
+    const t = setTimeout(resolve, ms);
+    signal.addEventListener("abort", () => (clearTimeout(t), reject(new Aborted())), { once: true });
   });
 }
 
@@ -51,8 +62,7 @@ export default function UploadForm() {
   const [error, setError] = useState<string | null>(null);
   const [existing, setExisting] = useState<{ id: string; libro_id: string } | null>(null);
   const [progress, setProgress] = useState<Record<string, number>>({});
-  const xhrRef = useRef<XMLHttpRequest | null>(null);
-  const abortedRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
   const itemsRef = useRef(items);
   useEffect(() => {
     itemsRef.current = items;
@@ -87,16 +97,15 @@ export default function UploadForm() {
     setStatus(`${items[index].file.name} movido a la posición ${to + 1}.`);
   }
 
-  async function upload(target: PresignedFile, item: Item) {
+  async function upload(target: PresignedFile, item: Item, signal: AbortSignal) {
     let last = 0;
     for (let attempt = 0; ; attempt++) {
-      if (abortedRef.current) throw new Aborted();
       const code = await put(target, item.file, (loaded) => {
         const now = Date.now();
         if (now - last < 250) return; // ponytail: throttle progress renders to ~4/s
         last = now;
         setProgress((p) => ({ ...p, [item.key]: loaded / item.file.size }));
-      }, xhrRef);
+      }, signal);
       if (code >= 200 && code < 300) {
         setProgress((p) => ({ ...p, [item.key]: 1 }));
         return;
@@ -105,7 +114,7 @@ export default function UploadForm() {
         throw new Error(`No se pudo subir ${item.file.name} (${code || "sin conexión"}).`);
       }
       setStatus(`Reintentando ${item.file.name} (${attempt + 2}/${MAX_ATTEMPTS})…`);
-      await new Promise((r) => setTimeout(r, backoffDelay(attempt)));
+      await sleep(backoffDelay(attempt), signal);
     }
   }
 
@@ -118,7 +127,12 @@ export default function UploadForm() {
     setBusy(true);
     setError(null);
     setExisting(null);
-    abortedRef.current = false;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const { signal } = controller;
+    const check = () => {
+      if (signal.aborted) throw new Aborted();
+    };
     try {
       setStatus("Calculando huellas de los archivos…");
       const archivos = [];
@@ -126,17 +140,21 @@ export default function UploadForm() {
         archivos.push({ nombre: file.name, tipo_contenido: file.type, tamano: file.size, sha256: await sha256Hex(file) });
       }
       setStatus("Preparando la subida…");
+      check();
       const created = await crearSubida(archivos, metadatos);
+      check();
       if (!created.ok) throw new Error(created.error);
       if (created.data.existente) {
         setExisting({ id: created.data.id, libro_id: created.data.libro_id });
         setStatus("Este libro ya existe.");
         return;
       }
-      for (const [i, target] of created.data.archivos.entries()) {
-        setStatus(`Subiendo ${i + 1} de ${items.length}…`);
-        await upload(target, items[i]);
+      const pairs = pairUploads(created.data.archivos, items, (i) => i.file.name);
+      for (const [i, [target, item]] of pairs.entries()) {
+        setStatus(`Subiendo ${i + 1} de ${pairs.length}…`);
+        await upload(target, item, signal);
       }
+      check();
       setStatus("Encolando el procesamiento…");
       const done = await completarSubida(created.data.id);
       if (!done.ok) throw new Error(done.error);
@@ -146,13 +164,12 @@ export default function UploadForm() {
       setStatus("");
     } finally {
       setBusy(false);
-      xhrRef.current = null;
+      abortRef.current = null;
     }
   }
 
   function abort() {
-    abortedRef.current = true;
-    xhrRef.current?.abort();
+    abortRef.current?.abort();
   }
 
   const field = (name: keyof MetadataInput, label: string, extra: Record<string, string> = {}) => (
