@@ -1,9 +1,27 @@
 import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
+import { authEnabled, sessionEmail, signIn, signOut } from "@/auth";
+import { canEdit, getMe } from "@/lib/server/api";
+import ThemeToggle from "@/components/ThemeToggle";
+import SignOutButton from "@/components/SignOutButton";
 
 const navLink =
   "rounded-md px-3 py-2 text-sm font-semibold text-ink-soft transition-colors hover:text-accent";
 
-export default function SiteHeader() {
+export default async function SiteHeader() {
+  let email: string | null = null;
+  let me: Awaited<ReturnType<typeof getMe>> = null;
+  try {
+    email = await sessionEmail();
+    me = email ? await getMe(email) : null;
+  } catch (err) {
+    unstable_rethrow(err); // keep Next internal signals (dynamic usage, redirects)
+    // A broken session/auth config must not take the page down: show logged-out UI.
+    console.error("SiteHeader: session lookup failed:", err);
+    email = null;
+    me = null;
+  }
+
   return (
     <header className="border-b border-line bg-paper">
       <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
@@ -22,6 +40,34 @@ export default function SiteHeader() {
           <Link href="/biblioteca" className={navLink}>
             Biblioteca
           </Link>
+          <ThemeToggle className={navLink} />
+          {canEdit(me?.rol) && (
+            <Link href="/editor" className={navLink}>
+              Editor
+            </Link>
+          )}
+          {authEnabled &&
+            (email ? (
+              <SignOutButton
+                className={navLink}
+                email={email}
+                action={async () => {
+                  "use server";
+                  await signOut({ redirectTo: "/" });
+                }}
+              />
+            ) : (
+              <form
+                action={async () => {
+                  "use server";
+                  await signIn("google");
+                }}
+              >
+                <button type="submit" className={navLink}>
+                  Ingresar
+                </button>
+              </form>
+            ))}
         </nav>
       </div>
     </header>

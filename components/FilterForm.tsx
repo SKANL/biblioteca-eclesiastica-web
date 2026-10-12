@@ -1,8 +1,9 @@
 "use client";
 
-import { useId, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import type { FacetsResponse } from "@/lib/types";
+import { createDebouncer, liveSearchHref } from "@/lib/live-search";
 import { btnPrimary, inputBase, labelBase, spinnerOnAccent } from "@/lib/ui";
 
 interface FilterFormProps {
@@ -15,6 +16,8 @@ interface FilterFormProps {
   initialGenero?: string;
   initialAutor?: string;
   autoFocus?: boolean;
+  /** Search-as-you-type: debounced `router.replace` while typing (needs `withQuery`). */
+  live?: boolean;
   variant?: "hero" | "inline";
 }
 
@@ -25,8 +28,11 @@ interface FilterFormProps {
  */
 export default function FilterForm(props: FilterFormProps) {
   // A new URL snapshot resets drafts, including Back/Forward soft navigation.
+  // `q` is excluded when live: the input must survive its own URL updates
+  // (it re-syncs from the URL in FilterFields only for foreign changes).
   const identity = JSON.stringify([
-    props.basePath, props.initialQuery ?? "", props.initialGenero ?? "", props.initialAutor ?? "",
+    props.basePath, props.live ? null : props.initialQuery ?? "",
+    props.initialGenero ?? "", props.initialAutor ?? "",
   ]);
   return <FilterFields key={identity} {...props} />;
 }
@@ -39,6 +45,7 @@ function FilterFields({
   initialGenero = "",
   initialAutor = "",
   autoFocus = false,
+  live = false,
   variant = "inline",
 }: FilterFormProps) {
   const router = useRouter();
@@ -46,6 +53,16 @@ function FilterFields({
   const [genero, setGenero] = useState(initialGenero);
   const [autor, setAutor] = useState(initialAutor);
   const [isPending, startTransition] = useTransition();
+  // Only the latest query this input put in the URL is "ours"; any other URL q
+  // (Back/Forward, links) overwrites the draft.
+  const [lastSent, setLastSent] = useState(initialQuery);
+  const [seen, setSeen] = useState(initialQuery);
+  if (live && initialQuery !== seen) {
+    setSeen(initialQuery);
+    if (initialQuery !== lastSent) setQ(initialQuery);
+  }
+  const debouncer = useRef<ReturnType<typeof createDebouncer<string>> | null>(null);
+  useEffect(() => () => debouncer.current?.cancel(), []);
 
   const qId = useId();
   const generoId = useId();
@@ -75,17 +92,34 @@ function FilterFields({
     return params;
   }
 
+  function handleChange(value: string) {
+    setQ(value);
+    if (!live) return;
+    debouncer.current ??= createDebouncer((input: string) => {
+      const href = liveSearchHref(basePath, window.location.search, input);
+      const current = window.location.pathname + window.location.search;
+      if (href === null || href === current) return;
+      setLastSent(new URLSearchParams(href.split("?")[1] ?? "").get("q") ?? "");
+      startTransition(() => router.replace(href));
+    });
+    debouncer.current.call(value);
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canSubmit || isPending) return;
+    debouncer.current?.cancel();
+    if (!canSubmit || (isPending && !live)) return;
+    if (live) setLastSent(trimmed);
     navigate(buildParams());
   }
 
+  /** Clears genre/author only; the search term stays. */
   function handleClear() {
-    setQ("");
     setGenero("");
     setAutor("");
-    navigate(new URLSearchParams());
+    const params = new URLSearchParams();
+    if (withQuery && initialQuery) params.set("q", initialQuery);
+    navigate(params);
   }
 
   return (
@@ -108,7 +142,7 @@ function FilterFields({
             name="q"
             type="search"
             value={q}
-            onChange={(event) => setQ(event.target.value)}
+            onChange={(event) => handleChange(event.target.value)}
             autoFocus={autoFocus}
             autoComplete="off"
             enterKeyHint="search"
@@ -191,7 +225,7 @@ function FilterFields({
           )}
           <button
             type="submit"
-            disabled={!canSubmit || isPending}
+            disabled={!canSubmit || (isPending && !live)}
             aria-busy={isPending}
             className={btnPrimary}
           >

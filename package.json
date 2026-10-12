@@ -7,14 +7,17 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "icons": "node scripts/generate-icons.mjs",
-    "test": "node --test tests/tools/test-reader-image.mjs tests/tools/test-reader-matches.mjs"
+    "test": "node --conditions=react-server --test tests/tools/test-reader-image.mjs tests/tools/test-reader-matches.mjs tests/tools/test-api-token.mjs tests/tools/test-upload.mjs tests/tools/test-upload-flow.mjs tests/tools/test-utils.mjs tests/tools/test-editor.mjs tests/tools/test-prefs.mjs tests/tools/test-sw.mjs tests/tools/test-live-search.mjs"
   },
   "dependencies": {
+    "jose": "6.2.12",
     "next": "16.4.0",
+    "next-auth": "5.0.0-beta.32",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Pagination from "@/components/Pagination";
 import EmptyState from "@/components/EmptyState";
+import ContinueReading from "@/components/ContinueReading";
 import { ApiError, getBook, getBookPages } from "@/lib/api";
 import type { BookDetail, PageListResponse } from "@/lib/types";
 import { firstValue, formatCount, toPage } from "@/lib/utils";
@@ -90,11 +91,13 @@ export default async function BookPage(props: BookProps) {
             >
               Empezar a leer
             </Link>}
+            <ContinueReading libroId={libroId} />
+            {/* ponytail: the API has no title filter; this is a full-text search for the title words. */}
             <Link
               href={`/buscar?q=${encodeURIComponent(meta.titulo)}`}
               className={btnOutline}
             >
-              Buscar en el título
+              Buscar el título en los textos
             </Link>
           </div>
         </header>
