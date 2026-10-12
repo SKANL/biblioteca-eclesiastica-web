@@ -66,7 +66,7 @@ el token HS256 y llama al API (`apiFetchAs`, `getMe`); `apiFetchAsSignedIn` (sol
   `ReaderToolbar`, `ReaderImage`, `CitePanel`, `BookCard`, `Pagination`, `EmptyState`,
   `ErrorNotice`, `MessagePage`, `SiteHeader`, `SiteFooter`.
 - `lib/api.ts` cliente tipado · `lib/types.ts` modelos · `lib/utils.ts`
-  (`snippetToSafeHtml`, `countLabel`, …; `highlightText` y `toParagraphs` existen pero no se usan) · `lib/ui.ts` **tokens
+  (`snippetToSafeHtml`, `countLabel`, …) · `lib/ui.ts` **tokens
   de clases**.
 
 ## Convenciones (IMPORTANTE)
@@ -78,8 +78,8 @@ el token HS256 y llama al API (`apiFetchAs`, `getMe`); `apiFetchAsSignedIn` (sol
 - Los datos se piden en Server Components con `fetch(..., { cache: "no-store" })`;
   la única excepción es `CitePanel` (client), que llama a la API desde el
   navegador (requiere CORS del origen de la PWA en el API).
-- Snippets de búsqueda: `snippetToSafeHtml` (escapa todo y re-habilita **solo**
-  `<mark>`). Resaltado en el lector: `markRanges` + `literalRanges`
+- Snippets de búsqueda: `snippetToSafeHtml` (el API ya escapa; se conservan
+  solo `<mark>`/`</mark>` y las entidades del API, el resto se escapa). Resaltado en el lector: `markRanges` + `literalRanges`
   (`lib/reader-matches.ts`) desde `libro/[libroId]/pagina/[numero]/page.tsx`.
 - Estados de carga en `loading.tsx`; vacío/error con `EmptyState` / `ErrorNotice`.
 - **Nada de UI decorativa**: cada elemento debe tener una función real y funcionar.

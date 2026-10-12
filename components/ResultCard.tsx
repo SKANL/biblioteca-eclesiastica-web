@@ -42,8 +42,8 @@ export default function ResultCard({
 
       <p
         className="mt-3 leading-relaxed text-ink"
-        // The API returns snippets containing <mark>; snippetToSafeHtml escapes
-        // everything else before re-enabling only those tags.
+        // The API escapes snippets and adds <mark>; snippetToSafeHtml keeps only
+        // <mark> and the API's entities and escapes everything else.
         dangerouslySetInnerHTML={{ __html: safeSnippet }}
       />
 
