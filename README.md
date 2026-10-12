@@ -78,6 +78,10 @@ preflight for `http://localhost:3010`; nothing to configure.
 
 ## Run
 
+Whole stack in Docker (API, Mongo, S3 and this PWA as a production build): run
+`docker compose up -d --build` from the API repo; this repo must be its sibling folder.
+See "Todo en Docker" in the API's `docs/RUNNING.md`. The `Dockerfile` here is only for that.
+
 Start the API (from the API repository, `C:\code\pipeline-OCR`):
 
 ```bash

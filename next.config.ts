@@ -6,6 +6,8 @@ import type { NextConfig } from "next";
 // fully dynamic (every screen reads the URL and the live API), so there is no
 // static shell to prerender and no cache model to adopt.
 const nextConfig: NextConfig = {
+  // Only the Docker image sets NEXT_OUTPUT=standalone; Vercel and `npm start` are unaffected.
+  output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   // The service worker must always be revalidated so a new VERSION ships promptly.
   async headers() {
     return [
