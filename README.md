@@ -28,6 +28,23 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
   (`CitePanel`) calls the API from the browser; all other data is fetched
   server-side.
 
+### Editor login (optional)
+
+Reading is public. Editors sign in with Google (Auth.js v5, JWT session, no DB).
+Variables (see `.env.example`): `AUTH_SECRET` (PWA session cookie; `npx auth
+secret`), `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `API_AUTH_SECRET` (must equal
+the API's `AUTH_SECRET`), optional `API_BASE_URL`. Without them the "Ingresar"
+button is hidden. For `next start` on localhost also set `AUTH_TRUST_HOST=true`.
+
+Google Cloud Console → APIs & Services → Credentials → OAuth client ID (Web):
+
+- Authorized redirect URIs: `http://localhost:3010/api/auth/callback/google`
+  and `https://<your-app>.vercel.app/api/auth/callback/google`.
+
+The server mints a 5-minute HS256 token per API call (`lib/server/api.ts`); it
+never reaches the browser. Roles come from the API (`GET /api/v1/yo`); the
+"Editor" link and `/editor` require `editor` or `admin`.
+
 ## Run
 
 Start the API (from the API repository, `C:\code\pipeline-OCR`):

@@ -39,6 +39,13 @@ npm run typecheck -- --incremental false
 Vercel se define en Project Settings → Environment Variables). La **API debe estar
 corriendo** para que la app tenga datos.
 
+Login de editores (opcional): `AUTH_SECRET`, `AUTH_GOOGLE_ID`,
+`AUTH_GOOGLE_SECRET`, `API_AUTH_SECRET` (= `AUTH_SECRET` del API), `API_BASE_URL`.
+`auth.ts` (raíz) configura Auth.js v5; `lib/server/api.ts` (server-only) firma
+el token HS256 y llama al API (`apiFetchAs`, `getMe`); `apiFetchAsEditor` en
+`auth.ts` para Server Actions. Sin env, el login se oculta. `/editor` exige rol
+`editor`/`admin`. Tests con `--conditions=react-server` (por `server-only`).
+
 ## Estructura
 
 - `tests/tools/` — cuatro harnesses Node/browser; ejecutar en este repo para

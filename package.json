@@ -9,12 +9,15 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "icons": "node scripts/generate-icons.mjs",
-    "test": "node --test tests/tools/test-reader-image.mjs tests/tools/test-reader-matches.mjs"
+    "test": "node --conditions=react-server --test tests/tools/test-reader-image.mjs tests/tools/test-reader-matches.mjs tests/tools/test-api-token.mjs"
   },
   "dependencies": {
+    "jose": "6.2.12",
     "next": "16.4.0",
+    "next-auth": "5.0.0-beta.32",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
