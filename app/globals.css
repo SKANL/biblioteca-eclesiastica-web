@@ -1,26 +1,129 @@
 @import "tailwindcss";
 
+/*
+ * Palette: "tinta y papel" but specific and restrained.
+ * Paper is a neutral off-white (not warm cream), ink is a cool near-black,
+ * and the single accent is a deep teal / verdigris. Chosen deliberately over
+ * the common warm-beige + oxblood reading-room cliche.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --paper: #f2f1ec;
+  --paper-raised: #fbfaf6;
+  --paper-sunken: #e9e8e1;
+  --ink: #171b1a;
+  --ink-soft: #4a5350;
+  --ink-faint: #737c78;
+  --line: #d7d6cd;
+  --line-strong: #bdbcb1;
+  --accent: #0d5c53;
+  --accent-hover: #0a453e;
+  --accent-ink: #f2fbf8;
+  --accent-soft: #d8ebe6;
+  --focus: #0d5c53;
+  --mark-bg: #cbe7e0;
+  --mark-ink: #0a3a34;
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --paper: #121716;
+    --paper-raised: #1a2120;
+    --paper-sunken: #0d1110;
+    --ink: #e8ece8;
+    --ink-soft: #a7b0ac;
+    --ink-faint: #7d8783;
+    --line: #2b3432;
+    --line-strong: #3d4845;
+    --accent: #63c9ba;
+    --accent-hover: #82d8cb;
+    --accent-ink: #08211d;
+    --accent-soft: #163f39;
+    --focus: #82d8cb;
+    --mark-bg: #1e4f47;
+    --mark-ink: #e9f7f3;
+    color-scheme: dark;
   }
 }
 
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-paper-sunken: var(--paper-sunken);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --font-sans: var(--font-source-sans);
+  --font-serif: var(--font-eb-garamond);
+}
+
+html {
+  background-color: var(--paper);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-source-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Visible, consistent focus for keyboard users only. */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+::selection {
+  background: var(--mark-bg);
+  color: var(--mark-ink);
+}
+
+/* Snippet highlight produced by the API (<mark>). */
+mark {
+  background: var(--mark-bg);
+  color: var(--mark-ink);
+  padding: 0 0.1em;
+  border-radius: 2px;
+}
+
+/* Native <select> needs explicit colors on Windows (otherwise it renders on a
+   system-gray background that clashes in dark mode). */
+select {
+  background-color: var(--paper-raised);
+  color: var(--ink);
+}
+
+button,
+a,
+select,
+input,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* Mobile inputs must be >=16px to avoid iOS zoom-on-focus. */
+input,
+select,
+textarea {
+  font-size: max(16px, 1rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

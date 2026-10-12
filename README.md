@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Biblioteca Virtual Eclesiástica (web)
 
-## Getting Started
+Front-end PWA for the **BUSCAR → LEER → CITAR** flow: search the catalogue,
+read the full page of a passage, and generate a bibliographic citation.
 
-First, run the development server:
+Stack: **Next.js 16 (App Router) + TypeScript + Tailwind CSS v4**. Vercel-ready.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Requirements
+
+- Node.js 20.9+ to run the app (built and verified on Node 24 / npm 11);
+  `npm test` needs **Node >= 22.18** (direct `.ts` imports)
+- The Python API running locally (see below)
+
+## Configuration
+
+The app talks to the API through a single environment variable, read at build
+time (it is public by design, it is only an API base URL):
+
+```
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Local: copy `.env.example` to `.env.local`.
+- Vercel: add `NEXT_PUBLIC_API_BASE_URL` in **Project Settings → Environment
+  Variables**, pointing at the deployed API. The API must allow the PWA origin
+  (`http://localhost:3010` locally) via its `CORS_ORIGINS` setting; the API
+  default is being changed to include 3010 in the API repo. Only "Copiar cita"
+  (`CitePanel`) calls the API from the browser; all other data is fetched
+  server-side.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Run
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Start the API (from the API repository, `C:\code\pipeline-OCR`):
 
-## Learn More
+```bash
+uv run uvicorn app.main:app --port 8000
+```
 
-To learn more about Next.js, take a look at the following resources:
+Then, in this folder:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm install
+npm run dev -- -p 3010   # http://localhost:3010
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+| Script              | Purpose                                     |
+| ------------------- | ------------------------------------------- |
+| `npm run dev`       | Development server                          |
+| `npm run build`     | Production build (0 TypeScript errors)      |
+| `npm run start`     | Serve the production build                  |
+| `npm run lint`      | ESLint (flat config)                        |
+| `npm run typecheck` | `tsc --noEmit`                              |
+| `npm run icons`     | Regenerate the PWA/app icons (no deps)      |
+| `npm test`          | Reader helper regressions in `tests/tools/` |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Real inputs live only in `../pipeline-OCR/tests/fixtures/`; this repository owns
+the four Node/browser harnesses in `tests/tools/`. See its [index](tests/tools/README.md).
+Original Office sources are archived in `../pipeline-OCR/docs/source/`.
+The API runs on 8000 and the web on 3010. Do not rebuild the live `.next` while
+production is serving; validate with lint/typecheck (`--incremental false`) or
+an isolated build copy. Moving input fixtures does not require DB/media regeneration.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## API endpoints used
+
+| UI need            | Endpoint                                                        |
+| ------------------ | -------------------------------------------------------------- |
+| Filters            | `GET /api/v1/facets`                                            |
+| Search             | `GET /api/v1/search?q=&genero=&autor=&limit=&offset=`          |
+| Book list          | `GET /api/v1/books?genero=&autor=&limit=&offset=`               |
+| Book metadata      | `GET /api/v1/books/{libro_id}`                                  |
+| Book pages         | `GET /api/v1/books/{libro_id}/paginas?limit=&offset=`           |
+| Page text + nav    | `GET /api/v1/ref/{libro_id}/pagina/{numero}?q=` (`q` optional: recomputes matches) |
+| Citation           | `GET /api/v1/cite/{libro_id}/pagina/{numero}?estilo=apa\|chicago\|mla` |
+| Page image / media | `GET /media/...` via `{API_BASE}{imagen_url}` (e.g. `/media/{id}/paginas/{n}.png`; not under `/api/v1`) |
+
+## PWA notes
+
+- `app/manifest.ts` provides name, icons, theme color and `display: standalone`.
+- Icons are generated by `scripts/generate-icons.mjs` (`app/icon.png`, `app/apple-icon.png`,
+  192, 512 and maskable 512 in `public/`) with no image library. `app/icon.png`
+  doubles as the browser icon; no separate favicon is generated.
+- **No service worker / offline cache is shipped on purpose.** A correct offline
+  shell for an API-backed app is not trivial, and a half-correct service worker
+  (stale JS, broken dev HMR) is worse than none. The app is installable and works
+  whenever the network and the API are reachable; an offline shell can be added
+  later with a tool such as Serwist.
+
+## Keyboard
+
+- Search: `Enter` submits the focused field.
+- Reader: `←` / `→` go to the previous / next page.
