@@ -1,32 +1,35 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { estadoTrabajo } from "@/app/(sitio)/editor/actions";
-import { btnPrimarySm } from "@/lib/ui";
+import JobView from "@/components/JobView";
 import { pollJob, type Job } from "@/lib/upload";
+import { minutesLeft } from "@/lib/upload-steps";
 
-const LABELS: Record<string, string> = {
-  esperando_subida: "Esperando la subida de los archivos",
-  pendiente: "En cola",
-  procesando: "Procesando",
-  completado: "Completado",
-  fallido: "Falló",
-};
-
-/** Job status via `pollJob` (single chain, backoff, pauses while the tab is hidden). */
-export default function JobStatus({ id }: { id: string }) {
+/**
+ * Live job tracker via `pollJob` (single chain, backoff, pauses while the tab is hidden).
+ * While `upload` is set the files are still going up from the browser: nothing is polled.
+ */
+export default function JobStatus({ id, titulo, upload }: { id: string; titulo?: string; upload?: number }) {
   const [job, setJob] = useState<Job | null>(null);
+  const [eta, setEta] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const first = useRef<{ at: number; done: number } | null>(null);
+  const uploading = upload !== undefined;
 
   useEffect(() => {
+    if (uploading) return;
     const poller = pollJob(
       () => estadoTrabajo(id),
       (res) => {
-        if (res.ok) {
-          setJob(res.data);
-          setError(null);
-        } else setError(res.error);
+        if (!res.ok) return setError(res.error);
+        setError(null);
+        setJob(res.data);
+        const p = res.data.progreso;
+        if (res.data.etapa !== "leyendo_paginas" || !p?.paginas_total) return setEta(null);
+        const sample = { at: Date.now(), done: p.paginas_hechas };
+        first.current ??= sample;
+        setEta(minutesLeft(first.current, { ...sample, total: p.paginas_total }));
       },
       () => document.hidden,
     );
@@ -36,24 +39,19 @@ export default function JobStatus({ id }: { id: string }) {
       poller.stop();
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [id]);
+  }, [id, uploading]);
 
-  const p = job?.progreso;
   return (
-    <div className="mt-6 space-y-4">
-      <p role="status" aria-live="polite" className="text-ink">
-        {job ? LABELS[job.estado] ?? job.estado : "Consultando…"}
-        {p?.paginas_total ? ` — ${p.paginas_hechas} de ${p.paginas_total} páginas` : null}
-      </p>
-      {p?.paginas_total ? (
-        <progress className="w-full" max={p.paginas_total} value={p.paginas_hechas} aria-label="Páginas procesadas" />
-      ) : null}
-      {job?.estado === "fallido" && job.error && <p role="alert" className="text-red-700">{job.error}</p>}
-      {error && <p role="alert" className="text-red-700">{error}</p>}
-      {job?.estado === "completado" && job.libro_id && (
-        <Link href={`/libro/${encodeURIComponent(job.libro_id)}`} className={btnPrimarySm}>
-          Ver el libro
-        </Link>
+    <div className="space-y-2">
+      {!uploading && !job && !error ? (
+        <p className="text-ink-soft">Consultando…</p>
+      ) : (
+        <JobView job={uploading ? null : job} titulo={titulo ?? job?.titulo} upload={upload} eta={eta} />
+      )}
+      {error && (
+        <p role="alert" className="text-sm text-red-700">
+          {error}
+        </p>
       )}
     </div>
   );

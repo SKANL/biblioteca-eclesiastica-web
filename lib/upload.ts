@@ -3,6 +3,8 @@
  * Contract: pipeline-OCR docs/API.md "Subidas firmadas y trabajos".
  */
 
+import type { StepJob } from "./upload-steps";
+
 export type JobState =
   | "esperando_subida"
   | "pendiente"
@@ -10,12 +12,14 @@ export type JobState =
   | "completado"
   | "fallido";
 
-export interface Job {
+export interface Job extends StepJob {
   id: string;
+  titulo: string | null;
   estado: JobState;
   progreso: { paginas_hechas: number; paginas_total: number | null } | null;
   error: string | null;
   libro_id: string | null;
+  creado_en?: string;
 }
 
 export interface PresignedFile {
@@ -25,11 +29,17 @@ export interface PresignedFile {
   encabezados: Record<string, string>;
 }
 
-export interface UploadCreated {
+export interface UploadJob {
   id: string;
+  titulo: string;
   libro_id: string;
   existente: boolean;
   archivos: PresignedFile[];
+}
+
+/** One job per PDF/TXT file, or a single job for photos. */
+export interface UploadCreated {
+  trabajos: UploadJob[];
 }
 
 /** Hex sha256 of a file. ponytail: crypto.subtle has no streaming digest, so the
