@@ -19,9 +19,14 @@ export default async function EditorPage() {
       <Link href="/editor/subir" className={btnPrimarySm}>
         Escanear o subir un libro
       </Link>
-      <Link href="/biblioteca" className={btnOutline}>
-        Ver biblioteca
+      <Link href="/editor/libros" className={btnOutline}>
+        Gestionar libros
       </Link>
+      {me?.rol === "admin" && (
+        <Link href="/editor/editores" className={btnOutline}>
+          Editores
+        </Link>
+      )}
     </MessagePage>
   );
 }

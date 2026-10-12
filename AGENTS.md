@@ -45,6 +45,9 @@ Login de editores (opcional): `AUTH_SECRET`, `AUTH_GOOGLE_ID`,
 el token HS256 y llama al API (`apiFetchAs`, `getMe`); `apiFetchAsSignedIn` (solo exige sesión y devuelve `null` sin ella; el rol lo valida el API) en
 `auth.ts` para Server Actions. Sin env, el login se oculta. `/editor` exige rol
 `editor`/`admin`. Tests con `--conditions=react-server` (por `server-only`).
+Gestión en `/editor/libros` (PATCH/DELETE/reprocesar vía Server Actions de
+`editor/actions.ts` + `ActionForm`; revalidan las páginas públicas) y
+`/editor/editores` (solo admin).
 
 ## Estructura
 
