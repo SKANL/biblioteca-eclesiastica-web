@@ -53,12 +53,13 @@ function FilterFields({
   const [genero, setGenero] = useState(initialGenero);
   const [autor, setAutor] = useState(initialAutor);
   const [isPending, startTransition] = useTransition();
-  // Queries this input put in the URL; anything else (Back/Forward) overwrites the draft.
-  const [sent] = useState(() => new Set<string>());
+  // Only the latest query this input put in the URL is "ours"; any other URL q
+  // (Back/Forward, links) overwrites the draft.
+  const [lastSent, setLastSent] = useState(initialQuery);
   const [seen, setSeen] = useState(initialQuery);
   if (live && initialQuery !== seen) {
     setSeen(initialQuery);
-    if (!sent.has(initialQuery)) setQ(initialQuery);
+    if (initialQuery !== lastSent) setQ(initialQuery);
   }
   const debouncer = useRef<ReturnType<typeof createDebouncer<string>> | null>(null);
   useEffect(() => () => debouncer.current?.cancel(), []);
@@ -98,7 +99,7 @@ function FilterFields({
       const href = liveSearchHref(basePath, window.location.search, input);
       const current = window.location.pathname + window.location.search;
       if (href === null || href === current) return;
-      sent.add(input.trim());
+      setLastSent(new URLSearchParams(href.split("?")[1] ?? "").get("q") ?? "");
       startTransition(() => router.replace(href));
     });
     debouncer.current.call(value);
@@ -108,7 +109,7 @@ function FilterFields({
     event.preventDefault();
     debouncer.current?.cancel();
     if (!canSubmit || (isPending && !live)) return;
-    if (live) sent.add(trimmed);
+    if (live) setLastSent(trimmed);
     navigate(buildParams());
   }
 
