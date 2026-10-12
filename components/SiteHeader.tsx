@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
-import { authEnabled, sessionEmail, signIn, signOut } from "@/auth";
+import { authEnabled, loginProvider, sessionEmail, signIn, signOut } from "@/auth";
 import { canEdit, getMe } from "@/lib/server/api";
 import ThemeToggle from "@/components/ThemeToggle";
 import SignOutButton from "@/components/SignOutButton";
@@ -60,7 +60,7 @@ export default async function SiteHeader() {
               <form
                 action={async () => {
                   "use server";
-                  await signIn("google");
+                  await signIn(loginProvider === "google" ? "google" : undefined);
                 }}
               >
                 <button type="submit" className={navLink}>
