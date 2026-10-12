@@ -176,13 +176,17 @@ export default function UploadForm() {
         ...jobs.map((j) => ({ id: j.id, titulo: j.titulo, libro_id: j.libro_id, existente: j.existente, upload: j.existente ? undefined : 0 })),
         ...prev.filter((p) => !jobs.some((j) => j.id === p.id)),
       ]);
-      setItems([]);
-      setMeta({});
       setStatus(jobs.length > 1 ? `Subiendo ${jobs.length} libros…` : "Subiendo…");
       let free = sent;
-      for (const job of jobs) {
+      let failures = 0;
+      for (const [index, job] of jobs.entries()) {
         if (job.existente) continue;
-        const pairs = pairUploads(job.archivos, free, (i) => i.file.name);
+        // Documents: the API returns one job per file, in the order sent, so pair by
+        // position (names can repeat across folders). Photos: one job, pair by name.
+        const pairs: [(typeof job.archivos)[number], (typeof sent)[number]][] =
+          documents && jobs.length === sent.length
+            ? [[job.archivos[0], sent[index]]]
+            : pairUploads(job.archivos, free, (i) => i.file.name);
         free = free.filter((i) => !pairs.some(([, p]) => p === i));
         const total = pairs.reduce((n, [, i]) => n + i.file.size, 0) || 1;
         const loaded: number[] = pairs.map(() => 0);
@@ -199,10 +203,21 @@ export default function UploadForm() {
           patch(job.id, { upload: undefined });
         } catch (err) {
           if (err instanceof Aborted) throw err;
+          failures += 1;
           patch(job.id, { error: err instanceof Error ? err.message : String(err) });
         }
       }
-      setStatus("Archivos enviados. Puedes seguir el avance aquí o en Mis subidas.");
+      if (failures === 0) {
+        setItems([]); // keep the selection when something failed, so it can be retried
+        setMeta({});
+        setStatus("Archivos enviados. Puedes seguir el avance aquí o en Mis subidas.");
+      } else {
+        setStatus(
+          failures === jobs.length
+            ? "No se pudo enviar ningún archivo. Revisa los avisos y vuelve a intentarlo."
+            : `${failures} de ${jobs.length} archivos no se enviaron. Revisa los avisos.`,
+        );
+      }
     } catch (err) {
       if (err instanceof Aborted) {
         setTracked((all) => all.map((t) => (t.upload !== undefined && !t.error ? { ...t, error: "subida cancelada." } : t)));
