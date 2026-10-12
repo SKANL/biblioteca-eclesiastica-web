@@ -6,7 +6,7 @@
  * - Never touched: non-GET (Server Actions), /api/*, /editor*, RSC payloads.
  * Bump VERSION to drop every old cache on activate.
  */
-var VERSION = "v1";
+var VERSION = "v2";
 var SHELL = "bve-" + VERSION + "-shell";
 var PAGES = "bve-" + VERSION + "-pages";
 var STATIC = "bve-" + VERSION + "-static";
@@ -98,7 +98,8 @@ self.addEventListener("install", function (event) {
   event.waitUntil(
     caches.open(SHELL).then(function (cache) {
       return cache.addAll([OFFLINE, "/manifest.webmanifest", "/icon-192.png"]).then(function () {
-        return cache.add("/").catch(function () {}); // best effort: the home needs the API
+        // credentials omitted: the shell copy must never contain a signed-in header.
+        return cache.add(new Request("/", { credentials: "omit" })).catch(function () {}); // best effort: the home needs the API
       });
     }).then(function () { return self.skipWaiting(); }),
   );

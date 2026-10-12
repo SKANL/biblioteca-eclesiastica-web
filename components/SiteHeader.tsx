@@ -3,6 +3,7 @@ import { unstable_rethrow } from "next/navigation";
 import { authEnabled, sessionEmail, signIn, signOut } from "@/auth";
 import { canEdit, getMe } from "@/lib/server/api";
 import ThemeToggle from "@/components/ThemeToggle";
+import SignOutButton from "@/components/SignOutButton";
 
 const navLink =
   "rounded-md px-3 py-2 text-sm font-semibold text-ink-soft transition-colors hover:text-accent";
@@ -47,16 +48,14 @@ export default async function SiteHeader() {
           )}
           {authEnabled &&
             (email ? (
-              <form
+              <SignOutButton
+                className={navLink}
+                email={email}
                 action={async () => {
                   "use server";
                   await signOut({ redirectTo: "/" });
                 }}
-              >
-                <button type="submit" className={navLink} title={email}>
-                  Salir
-                </button>
-              </form>
+              />
             ) : (
               <form
                 action={async () => {

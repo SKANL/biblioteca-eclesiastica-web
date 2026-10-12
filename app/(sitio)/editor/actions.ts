@@ -61,7 +61,7 @@ export type FormState = { ok?: string; error?: string } | null;
 
 /** Public pages that show a book's metadata or pages. */
 function revalidateBook(libroId: string) {
-  revalidatePath(`/libro/${libroId}`, "layout");
+  revalidatePath(`/libro/${encodeURIComponent(libroId)}`, "layout");
   revalidatePath("/biblioteca");
   revalidatePath("/buscar");
   revalidatePath("/editor/libros");
