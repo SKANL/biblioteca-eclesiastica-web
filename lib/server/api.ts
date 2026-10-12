@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { SignJWT } from "jose";
 
 /**
@@ -45,7 +46,7 @@ const SERVER_API_BASE = (
   "http://localhost:8000"
 ).replace(/\/+$/, "");
 
-/** Calls the API as `email` with a freshly minted bearer token (see `apiFetchAsEditor` in auth.ts). */
+/** Calls the API as `email` with a freshly minted bearer token (see `apiFetchAsSignedIn` in auth.ts). */
 export async function apiFetchAs(
   email: string,
   path: string,
@@ -57,12 +58,17 @@ export async function apiFetchAs(
   return fetch(`${SERVER_API_BASE}${path}`, { cache: "no-store", ...init, headers });
 }
 
-/** `{email, rol}` from `GET /api/v1/yo`; `null` when the API is unreachable or rejects. */
-export async function getMe(email: string): Promise<Me | null> {
+/**
+ * `{email, rol}` from `GET /api/v1/yo`; `null` when the API is unreachable or
+ * rejects (logged, so a misconfigured secret/URL is visible). Deduped per request.
+ */
+export const getMe = cache(async (email: string): Promise<Me | null> => {
   try {
-    const res = await apiFetchAs(email, "/api/v1/yo");
-    return res.ok ? ((await res.json()) as Me) : null;
-  } catch {
-    return null; // ponytail: no secret / API down => treated as non-editor
+    const res = await apiFetchAs(email, "/api/v1/yo", { signal: AbortSignal.timeout(3000) });
+    if (res.ok) return (await res.json()) as Me;
+    console.error(`getMe: GET /api/v1/yo -> ${res.status} (check API_AUTH_SECRET / API_BASE_URL)`);
+  } catch (err) {
+    console.error("getMe: API unreachable or not configured:", err);
   }
-}
+  return null; // treated as non-editor
+});
