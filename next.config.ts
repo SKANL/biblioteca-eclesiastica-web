@@ -6,6 +6,17 @@ import type { NextConfig } from "next";
 // fully dynamic (every screen reads the URL and the live API), so there is no
 // static shell to prerender and no cache model to adopt.
 const nextConfig: NextConfig = {
+  // The service worker must always be revalidated so a new VERSION ships promptly.
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+        ],
+      },
+    ];
+  },
   turbopack: {
     rules: {
       "*.css": {

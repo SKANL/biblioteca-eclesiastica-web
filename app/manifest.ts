@@ -6,6 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Biblioteca",
     description:
       "Busca pasajes en el catálogo, lee la página completa y genera citas bibliográficas.",
+    id: "/",
     start_url: "/",
     scope: "/",
     display: "standalone",

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { EB_Garamond, Source_Sans_3 } from "next/font/google";
+import ServiceWorker from "@/components/ServiceWorker";
 import "./globals.css";
 
 const serif = EB_Garamond({
@@ -60,6 +61,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Ir al contenido
         </a>
         {children}
+        <ServiceWorker />
       </body>
     </html>
   );

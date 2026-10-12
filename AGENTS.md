@@ -87,6 +87,9 @@ Gestión en `/editor/libros` (PATCH/DELETE/reprocesar vía Server Actions de
 - Preferencias por dispositivo (vista, tema, tamaño de texto, última página por
   libro) en `localStorage` vía `lib/prefs.ts` + `components/usePref.ts`; siempre
   con try/catch. La URL (`?ver=`) manda sobre la preferencia.
+- Offline: `public/sw.js` (a mano, registrado solo en producción por
+  `components/ServiceWorker.tsx`; fallback `app/offline`). Subir `VERSION` al
+  cambiar estrategias. Nunca cachea POST, `/api/*`, `/editor*` ni payloads RSC.
 - Estados de carga en `loading.tsx`; vacío/error con `EmptyState` / `ErrorNotice`.
 - **Nada de UI decorativa**: cada elemento debe tener una función real y funcionar.
 
