@@ -11,6 +11,7 @@ export interface ArchivoDeclarado {
   tipo_contenido: string;
   tamano: number;
   sha256: string;
+  titulo?: string;
 }
 
 /** Calls the API server-side (token never reaches the browser) and maps errors to Spanish. */
@@ -50,6 +51,10 @@ export async function completarSubida(
   id: string,
 ): Promise<ActionResult<{ trabajo_id: string; estado: string }>> {
   return call(`/api/v1/uploads/${encodeURIComponent(id)}/completar`, { method: "POST" });
+}
+
+export async function misTrabajos(): Promise<ActionResult<Job[]>> {
+  return call<Job[]>("/api/v1/trabajos?limit=20");
 }
 
 export async function estadoTrabajo(id: string): Promise<ActionResult<Job>> {

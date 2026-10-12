@@ -19,6 +19,9 @@ export default async function EditorPage() {
       <Link href="/editor/subir" className={btnPrimarySm}>
         Escanear o subir un libro
       </Link>
+      <Link href="/editor/subidas" className={btnOutline}>
+        Mis subidas
+      </Link>
       <Link href="/editor/libros" className={btnOutline}>
         Gestionar libros
       </Link>

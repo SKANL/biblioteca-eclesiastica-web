@@ -42,9 +42,14 @@ export default async function SiteHeader() {
           </Link>
           <ThemeToggle className={navLink} />
           {canEdit(me?.rol) && (
-            <Link href="/editor" className={navLink}>
-              Editor
-            </Link>
+            <>
+              <Link href="/editor" className={navLink}>
+                Editor
+              </Link>
+              <Link href="/editor/subidas" className={navLink}>
+                Mis subidas
+              </Link>
+            </>
           )}
           {authEnabled &&
             (email ? (
