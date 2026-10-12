@@ -2,6 +2,7 @@ import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { authEnabled, sessionEmail, signIn, signOut } from "@/auth";
 import { canEdit, getMe } from "@/lib/server/api";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const navLink =
   "rounded-md px-3 py-2 text-sm font-semibold text-ink-soft transition-colors hover:text-accent";
@@ -38,6 +39,7 @@ export default async function SiteHeader() {
           <Link href="/biblioteca" className={navLink}>
             Biblioteca
           </Link>
+          <ThemeToggle className={navLink} />
           {canEdit(me?.rol) && (
             <Link href="/editor" className={navLink}>
               Editor

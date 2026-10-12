@@ -81,11 +81,13 @@ function FilterFields({
     navigate(buildParams());
   }
 
+  /** Clears genre/author only; the search term stays. */
   function handleClear() {
-    setQ("");
     setGenero("");
     setAutor("");
-    navigate(new URLSearchParams());
+    const params = new URLSearchParams();
+    if (withQuery && initialQuery) params.set("q", initialQuery);
+    navigate(params);
   }
 
   return (

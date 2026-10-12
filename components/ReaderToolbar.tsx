@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ReaderImage from "@/components/ReaderImage";
 import { mediaUrl } from "@/lib/api";
 import type { Bloque, TextMatch } from "@/lib/types";
-import { numeroFromRef } from "@/lib/utils";
+import { countLabel, numeroFromRef } from "@/lib/utils";
+import { PREF, TEXT_SCALES, stepScale, throttle, writePref } from "@/lib/prefs";
+import { usePref } from "@/components/usePref";
 import { btnOutline, btnOutlineDisabled } from "@/lib/ui";
 import { scrollToHighlight, targetIdentity, validHighlight } from "@/lib/reader-image";
 import { matchIndex } from "@/lib/reader-matches";
@@ -19,7 +21,8 @@ interface ReaderToolbarProps {
   imagenUrl: string | null;
   imagenAncho: number | null;
   imagenAlto: number | null;
-  preferOriginal?: boolean;
+  /** Highest page number, enables "Ir a la página". */
+  totalPaginas?: number;
   bloques: Bloque[];
   bloqueIdx: number | null;
   query?: string;
@@ -27,6 +30,10 @@ interface ReaderToolbarProps {
   matchesTruncated?: boolean;
   pageWarning?: string | null;
 }
+
+const VIEWS = ["imagen", "texto"] as const;
+// ≤ 1 write/s even when paging fast with the arrow keys.
+const saveProgress = throttle((libroId: string, numero: number) => writePref(PREF.progress(libroId), String(numero)), 1000);
 
 export default function ReaderToolbar({
   libroId,
@@ -36,7 +43,7 @@ export default function ReaderToolbar({
   imagenUrl,
   imagenAncho,
   imagenAlto,
-  preferOriginal = false,
+  totalPaginas,
   bloques,
   bloqueIdx,
   query = "",
@@ -46,8 +53,11 @@ export default function ReaderToolbar({
 }: ReaderToolbarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // URL wins; without `ver` the device's last choice (default: original page).
+  const [view, setView] = usePref(PREF.view, VIEWS, "imagen");
+  const [scale, setScale] = usePref(PREF.scale, TEXT_SCALES, "1");
   const showImage = searchParams.get("ver") === "imagen" ||
-    (!searchParams.has("ver") && preferOriginal);
+    (!searchParams.has("ver") && view === "imagen");
 
   const targetBlock =
     bloqueIdx != null && bloqueIdx >= 0 && bloqueIdx < bloques.length
@@ -106,8 +116,20 @@ export default function ReaderToolbar({
     };
   }, [scheduleTargetScroll]);
 
+  useEffect(() => saveProgress(libroId, numero), [libroId, numero]);
+  useEffect(() => {
+    document.documentElement.style.setProperty("--reader-scale", scale);
+  }, [scale]);
+
+  function goToPage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const n = Number(new FormData(event.currentTarget).get("pagina"));
+    if (Number.isInteger(n) && n >= 1) router.push(`${base}${n}${suffix}`);
+  }
+
   function toggleImage() {
     const next = !showImage;
+    setView(next ? "imagen" : "texto");
     // La URL es la fuente de verdad: así el estado sobrevive a recargas,
     // atrás/adelante y a copiar el enlace.
     const url = new URL(window.location.href);
@@ -163,6 +185,20 @@ export default function ReaderToolbar({
             Página siguiente
           </span>
         )}
+        <div className="flex items-center gap-1" role="group" aria-label="Tamaño del texto">
+          <button type="button" className={`${btnOutline} disabled:opacity-50`} onClick={() => setScale(stepScale(scale, -1))}
+            disabled={scale === TEXT_SCALES[0]} aria-label="Reducir el tamaño del texto">A−</button>
+          <button type="button" className={`${btnOutline} disabled:opacity-50`} onClick={() => setScale(stepScale(scale, 1))}
+            disabled={scale === TEXT_SCALES.at(-1)} aria-label="Aumentar el tamaño del texto">A+</button>
+        </div>
+        {totalPaginas != null && totalPaginas > 1 && (
+          <form onSubmit={goToPage} className="flex items-center gap-1">
+            <label htmlFor="ir-pagina" className="text-sm text-ink-soft">Ir a la página</label>
+            <input id="ir-pagina" key={numero} name="pagina" type="number" min={1} max={totalPaginas} required
+              defaultValue={numero} className="w-20 rounded-md border border-line-strong bg-paper-raised px-2 py-2 text-sm text-ink" />
+            <button type="submit" className={btnOutline}>Ir</button>
+          </form>
+        )}
         {imageSrc && (
           <button
             type="button"
@@ -176,7 +212,7 @@ export default function ReaderToolbar({
       </div>
 
       {query && <div className="mt-3 flex flex-wrap items-center gap-2 text-sm" aria-live="polite">
-        <span>{matches.length ? `Coincidencia ${activeIndex + 1} de ${matches.length}${matchesTruncated ? " disponibles (límite alcanzado)" : ""}` : "No hay coincidencias literales en esta página."}</span>
+        <span>{matches.length ? `${countLabel(matches.length, "coincidencia", "coincidencias")} en esta página${matchesTruncated ? " (límite alcanzado)" : ""} · Coincidencia ${activeIndex + 1} de ${matches.length}` : "No hay coincidencias literales en esta página."}</span>
         {matches.length > 1 && <>
           {activeIndex > 0 && <Link href={matchHref(activeIndex - 1)} scroll={false} className={btnOutline}>Coincidencia anterior</Link>}
           {activeIndex + 1 < matches.length && <Link href={matchHref(activeIndex + 1)} scroll={false} className={btnOutline}>Coincidencia siguiente</Link>}
@@ -186,7 +222,7 @@ export default function ReaderToolbar({
         <p className="w-full text-ink-soft">Localización literal: términos independientes; frases entre comillas dobles. El ranking del buscador puede incluir variantes lingüísticas sin coincidencia literal.</p>
       </div>}
 
-      {preferOriginal && <p className="mt-3 text-sm text-ink-soft">La detección de figuras puede ser incompleta. La página original conserva los diagramas, sus etiquetas y su disposición.</p>}
+      {showImage && <p className="mt-3 text-sm text-ink-soft">La detección de figuras puede ser incompleta. La página original conserva los diagramas, sus etiquetas y su disposición.</p>}
       {pageWarning && <p role="status" className="mt-3 text-sm text-ink-soft">{pageWarning}</p>}
       {showImage && !imageSrc && <p role="status" className="mt-3 text-sm text-ink-soft">Esta página no tiene imagen original disponible. Puede seguir leyendo el texto o pasar a otra página.</p>}
 

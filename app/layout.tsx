@@ -39,12 +39,19 @@ export const viewport: Viewport = {
   colorScheme: "light dark",
 };
 
+// Applies saved theme and text size before first paint (no flash). Keys: lib/prefs.ts PREF.
+const PREFS_SCRIPT = `try{var d=document.documentElement,t=localStorage.getItem("bve:tema"),s=localStorage.getItem("bve:texto");if(t==="light"||t==="dark")d.dataset.theme=t;if(/^[0-9.]{1,5}$/.test(s||""))d.style.setProperty("--reader-scale",s)}catch(e){}`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="es"
       className={`${serif.variable} ${sans.variable} h-full`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: PREFS_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col bg-paper text-ink">
         <a
           href="#contenido"

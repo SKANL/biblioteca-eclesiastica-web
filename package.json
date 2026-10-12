@@ -9,7 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "icons": "node scripts/generate-icons.mjs",
-    "test": "node --conditions=react-server --test tests/tools/test-reader-image.mjs tests/tools/test-reader-matches.mjs tests/tools/test-api-token.mjs tests/tools/test-upload.mjs tests/tools/test-upload-flow.mjs tests/tools/test-utils.mjs tests/tools/test-editor.mjs"
+    "test": "node --conditions=react-server --test tests/tools/test-reader-image.mjs tests/tools/test-reader-matches.mjs tests/tools/test-api-token.mjs tests/tools/test-upload.mjs tests/tools/test-upload-flow.mjs tests/tools/test-utils.mjs tests/tools/test-editor.mjs tests/tools/test-prefs.mjs"
   },
   "dependencies": {
     "jose": "6.2.12",

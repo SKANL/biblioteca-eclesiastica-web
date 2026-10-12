@@ -7,43 +7,32 @@
  * the common warm-beige + oxblood reading-room cliche.
  */
 :root {
-  --paper: #f2f1ec;
-  --paper-raised: #fbfaf6;
-  --paper-sunken: #e9e8e1;
-  --ink: #171b1a;
-  --ink-soft: #4a5350;
-  --ink-faint: #737c78;
-  --line: #d7d6cd;
-  --line-strong: #bdbcb1;
-  --accent: #0d5c53;
-  --accent-hover: #0a453e;
-  --accent-ink: #f2fbf8;
-  --accent-soft: #d8ebe6;
-  --focus: #0d5c53;
-  --mark-bg: #cbe7e0;
-  --mark-ink: #0a3a34;
+  /* light-dark() follows color-scheme: the system by default, or the
+     data-theme the reader chose (ThemeToggle + script in app/layout.tsx). */
+  color-scheme: light dark;
+  --paper: light-dark(#f2f1ec, #121716);
+  --paper-raised: light-dark(#fbfaf6, #1a2120);
+  --paper-sunken: light-dark(#e9e8e1, #0d1110);
+  --ink: light-dark(#171b1a, #e8ece8);
+  --ink-soft: light-dark(#4a5350, #a7b0ac);
+  --ink-faint: light-dark(#737c78, #7d8783);
+  --line: light-dark(#d7d6cd, #2b3432);
+  --line-strong: light-dark(#bdbcb1, #3d4845);
+  --accent: light-dark(#0d5c53, #63c9ba);
+  --accent-hover: light-dark(#0a453e, #82d8cb);
+  --accent-ink: light-dark(#f2fbf8, #08211d);
+  --accent-soft: light-dark(#d8ebe6, #163f39);
+  --focus: light-dark(#0d5c53, #82d8cb);
+  --mark-bg: light-dark(#cbe7e0, #1e4f47);
+  --mark-ink: light-dark(#0a3a34, #e9f7f3);
+}
+
+:root[data-theme="light"] {
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #121716;
-    --paper-raised: #1a2120;
-    --paper-sunken: #0d1110;
-    --ink: #e8ece8;
-    --ink-soft: #a7b0ac;
-    --ink-faint: #7d8783;
-    --line: #2b3432;
-    --line-strong: #3d4845;
-    --accent: #63c9ba;
-    --accent-hover: #82d8cb;
-    --accent-ink: #08211d;
-    --accent-soft: #163f39;
-    --focus: #82d8cb;
-    --mark-bg: #1e4f47;
-    --mark-ink: #e9f7f3;
-    color-scheme: dark;
-  }
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 @theme inline {

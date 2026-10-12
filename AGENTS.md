@@ -82,8 +82,11 @@ Gestión en `/editor/libros` (PATCH/DELETE/reprocesar vía Server Actions de
   la única excepción es `CitePanel` (client), que llama a la API desde el
   navegador (requiere CORS del origen de la PWA en el API).
 - Snippets de búsqueda: `snippetToSafeHtml` (el API ya escapa; se conservan
-  solo `<mark>`/`</mark>` y las entidades del API, el resto se escapa). Resaltado en el lector: `markRanges` + `literalRanges`
-  (`lib/reader-matches.ts`) desde `libro/[libroId]/pagina/[numero]/page.tsx`.
+  solo `<mark>`/`</mark>` y las entidades del API, el resto se escapa). Resaltado en el lector: `markRanges` con las
+  `coincidencias` del API (`lib/reader-matches.ts`).
+- Preferencias por dispositivo (vista, tema, tamaño de texto, última página por
+  libro) en `localStorage` vía `lib/prefs.ts` + `components/usePref.ts`; siempre
+  con try/catch. La URL (`?ver=`) manda sobre la preferencia.
 - Estados de carga en `loading.tsx`; vacío/error con `EmptyState` / `ErrorNotice`.
 - **Nada de UI decorativa**: cada elemento debe tener una función real y funcionar.
 

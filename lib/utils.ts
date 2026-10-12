@@ -38,3 +38,16 @@ export function toPage(value: string | undefined): number {
   const n = Number(value);
   return Number.isInteger(n) && n >= 1 ? n : 1;
 }
+
+const MOTORS: Record<string, string> = {
+  mistral: "Texto por OCR (Mistral)",
+  pypdfium2: "Texto nativo del PDF",
+  opendataloader: "Texto del PDF (OpenDataLoader)",
+  texto: "Texto original",
+};
+
+/** Honest label for the page's text source (`motor` from `/ref`). */
+export function motorLabel(motor: string | null | undefined): string | null {
+  if (!motor) return null;
+  return MOTORS[motor] ?? `Motor: ${motor}`;
+}

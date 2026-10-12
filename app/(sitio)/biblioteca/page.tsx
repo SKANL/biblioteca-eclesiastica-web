@@ -4,6 +4,8 @@ import FilterForm from "@/components/FilterForm";
 import Pagination from "@/components/Pagination";
 import EmptyState from "@/components/EmptyState";
 import ErrorNotice from "@/components/ErrorNotice";
+import Link from "next/link";
+import { btnOutline } from "@/lib/ui";
 import { ApiError, getBooks, getFacets } from "@/lib/api";
 import type { BookListResponse } from "@/lib/types";
 import { countLabel, firstValue, toPage } from "@/lib/utils";
@@ -85,11 +87,27 @@ export default async function BibliotecaPage(props: PageProps<"/biblioteca">) {
                 {hasFilters ? " con los filtros aplicados" : ""}.
               </p>
 
-              <div className="mt-2">
-                {books.resultados.map((book) => (
-                  <BookCard key={book.libro_id} book={book} />
-                ))}
-              </div>
+              {books.resultados.length === 0 ? (
+                <div className="mt-6">
+                  <EmptyState
+                    title="Esta página no tiene libros"
+                    message="La página solicitada quedó fuera del catálogo."
+                  >
+                    <Link
+                      href={`/biblioteca${hasFilters ? `?${new URLSearchParams(params)}` : ""}`}
+                      className={btnOutline}
+                    >
+                      Volver a la primera página
+                    </Link>
+                  </EmptyState>
+                </div>
+              ) : (
+                <div className="mt-2">
+                  {books.resultados.map((book) => (
+                    <BookCard key={book.libro_id} book={book} />
+                  ))}
+                </div>
+              )}
 
               <Pagination
                 basePath="/biblioteca"

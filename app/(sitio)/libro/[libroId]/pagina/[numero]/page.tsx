@@ -7,8 +7,8 @@ import CitePanel from "@/components/CitePanel";
 import ReaderImage from "@/components/ReaderImage";
 import { ApiError, getBook, getPage, mediaUrl } from "@/lib/api";
 import type { BookDetail, PageResponse } from "@/lib/types";
-import { firstValue } from "@/lib/utils";
-import { literalRanges, markRanges, matchIndex } from "@/lib/reader-matches";
+import { firstValue, motorLabel } from "@/lib/utils";
+import { markRanges, matchIndex } from "@/lib/reader-matches";
 
 const loadBook = cache((libroId: string) => getBook(libroId));
 
@@ -55,10 +55,8 @@ export default async function ReaderPage(props: ReaderProps) {
   const bloqueRaw = Number(firstValue(searchParams.bloque));
   const bloqueIdx =
     Number.isInteger(bloqueRaw) && bloqueRaw >= 0 ? bloqueRaw : null;
-  const matches = page.coincidencias ?? literalRanges(page.texto, q).map(range => ({ ...range, rects: [], precision: "sin_localizar" as const, fuente: null, advertencia: "El servidor no proporciona geometría de esta coincidencia." }));
+  const matches = page.coincidencias ?? [];
   const activeIndex = matchIndex(firstValue(searchParams.coincidencia), matches.length);
-  // No extractor result currently certifies complete vector/composite artwork.
-  const preferOriginal = true;
   const supports = page.figuras.filter(figure => figure.tipo === "soporte_nativo");
   const canShowCrops = supports.length > 0 || page.figuras.every((figure) => figure.estado === "no_verificado" && figure.orden != null);
   const figures = supports.length ? supports : page.figuras;
@@ -116,6 +114,14 @@ export default async function ReaderPage(props: ReaderProps) {
               |
             </span>
             {page.conteo_palabras} palabras
+            {motorLabel(page.motor) && (
+              <>
+                <span aria-hidden="true" className="mx-2 text-line-strong">
+                  |
+                </span>
+                <span title="Procedencia del texto de esta página">{motorLabel(page.motor)}</span>
+              </>
+            )}
           </p>
           <p className="mt-1 text-xs text-ink-faint">
             <span translate="no" className="font-mono">
@@ -132,7 +138,7 @@ export default async function ReaderPage(props: ReaderProps) {
           imagenUrl={page.imagen_url}
           imagenAncho={page.imagen_ancho}
           imagenAlto={page.imagen_alto}
-          preferOriginal={preferOriginal}
+          totalPaginas={book.conteo_paginas}
           bloques={page.bloques}
           bloqueIdx={bloqueIdx}
           query={q}
@@ -141,7 +147,7 @@ export default async function ReaderPage(props: ReaderProps) {
           pageWarning={page.advertencia_localizacion}
         />
 
-        <article className="mt-8 font-serif text-xl leading-[1.75] text-ink">
+        <article className="mt-8 font-serif text-[length:calc(1.25rem*var(--reader-scale,1))] leading-[1.75] text-ink">
           {flow.length ? flow.map((segment, index) => <section key={`reading-${index}`} aria-label={segment.tipo === "nota" ? "Notas al pie" : segment.tipo === "visual" ? "Soportes visuales" : "Texto principal"}>
             {segment.tipo === "visual" && supports.length ? <>
               {renderFigures()}
